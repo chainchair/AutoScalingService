@@ -1,0 +1,21 @@
+{
+    "monitor_host": "localhost",
+    "monitor_port": 50051,
+
+    "min_instances": 2,
+    "max_instances": 5,
+
+    "scale_up_cpu": 80,
+    "scale_down_cpu": 30,
+
+    "high_load_threshold_count": 3,
+    "low_load_threshold_count": 5,
+
+    "cooldown_seconds": 60,
+
+    "ami_id": "ami-xxxxxxxx",
+    "instance_type": "t2.micro",
+    "key_name": "vockey",
+    "security_group_id": "sg-xxxxxxxx",
+    "subnet_id": "subnet-xxxxxxxx"
+}
