@@ -13,7 +13,7 @@
 
     "cooldown_seconds": 60,
 
-    "ami_id": "ami-00e801948462f718a",
+    "ami_id": "ami-00c25baae66ff66b8",
     "instance_type": "t2.micro",
     "key_name": "vockey",
     "security_group_id": "sg-098e3945ab8d2f229",
