@@ -28,7 +28,7 @@ class ControllerASG:
 
         self.ec2 = boto3.client(
             "ec2",
-            region_name="us-east-1"
+            region_name="us-east-1a"
         )
 
     # Método para obtener métricas de todas las instancias registradas en el MonitorService.
