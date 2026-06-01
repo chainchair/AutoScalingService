@@ -131,6 +131,16 @@ class ControllerASG:
     # En una implementación real, aquí se usarían llamadas a la API de AWS (boto3) para gestionar las instancias EC2.
     def scale_up(self):
 
+        current_instances = len(
+            self.get_metrics()
+        )
+
+        if current_instances >= self.config["max_instances"]:
+            print(
+                "[Controller] Maximum instances reached"
+            )
+            return
+    
         print("\n==============================")
         print("[Controller] DECISION: SCALE UP")
         print("[Controller] Creating instance")

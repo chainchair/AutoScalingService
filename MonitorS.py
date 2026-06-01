@@ -42,10 +42,27 @@ class MonitorServiceServicer(monitor_pb2_grpc.MonitorServiceServicer):
                     print(f"[MonitorS] No se pudo recolectar métricas de {instance_id} ({ip}): {e}")
 
     def RegisterInstance(self, request, context):
-        print(f"Registrando instancia: {request.instance_id} con IP: {request.ip_address}")
+
+        print(
+            f"REGISTER -> "
+            f"{request.instance_id} "
+            f"{request.ip_address}"
+        )
+
         with self.lock:
-            self.registered_instances[request.instance_id] = request.ip_address
-        return monitor_pb2.RegisterResponse(success=True, message="Instancia registrada con éxito")
+            self.registered_instances[
+                request.instance_id
+            ] = request.ip_address
+
+        print(
+            f"TOTAL REGISTERED = "
+            f"{len(self.registered_instances)}"
+        )
+
+        return monitor_pb2.RegisterResponse(
+            success=True,
+            message="Instancia registrada con éxito"
+        )
 
     def DeregisterInstance(self, request, context):
         print(f"Desregistrando instancia: {request.instance_id}")

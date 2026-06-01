@@ -19,7 +19,9 @@ FLASK_HEALTH_URL = "http://127.0.0.1:5000/health"
 # Configuraciones de red (usan variables de entorno, o '127.0.0.1' por defecto para pruebas locales)
 MONITORS_IP = "172.31.36.19"      # IP privada de MonitorS
 MY_IP = "172.31.37.117"           # IP privada de esta AppInstance
-INSTANCE_ID = "app-instance-1"
+INSTANCE_ID = requests.get(
+    "http://169.254.169.254/latest/meta-data/instance-id"
+).text
 
 
 class MonitorService(metrics_pb2_grpc.MonitorServiceServicer):
