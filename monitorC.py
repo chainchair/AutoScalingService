@@ -17,9 +17,9 @@ FLASK_METRICS_URL = "http://127.0.0.1:5000/metrics"
 FLASK_HEALTH_URL = "http://127.0.0.1:5000/health"
 
 # Configuraciones de red (usan variables de entorno, o '127.0.0.1' por defecto para pruebas locales)
-MONITORS_IP = os.environ.get("MONITORS_IP", "127.0.0.1")
-MY_IP = os.environ.get("MY_IP", "127.0.0.1")
-INSTANCE_ID = os.environ.get("INSTANCE_ID", "nodo_flask_1")
+MONITORS_IP = "172.31.36.19"      # IP privada de MonitorS
+MY_IP = "172.31.37.117"           # IP privada de esta AppInstance
+INSTANCE_ID = "app-instance-1"
 
 
 class MonitorService(metrics_pb2_grpc.MonitorServiceServicer):
