@@ -13,9 +13,9 @@
 
     "cooldown_seconds": 60,
 
-    "ami_id": "ami-xxxxxxxx",
+    "ami_id": "ami-0770847819d03146e",
     "instance_type": "t2.micro",
     "key_name": "vockey",
-    "security_group_id": "sg-xxxxxxxx",
-    "subnet_id": "subnet-xxxxxxxx"
+    "security_group_id": "sg-098e3945ab8d2f229",
+    "subnet_id": "subnet-064a37aed56f17bf3"
 }

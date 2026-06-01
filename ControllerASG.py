@@ -1,7 +1,7 @@
 import grpc
 import time
 import json
-# import boto3
+import boto3
 
 import monitor_pb2
 import monitor_pb2_grpc
@@ -25,6 +25,11 @@ class ControllerASG:
 
         self.high_load_count = 0
         self.low_load_count = 0
+
+        self.ec2 = boto3.client(
+            "ec2",
+            region_name="us-east-1"
+        )
 
     # Método para obtener métricas de todas las instancias registradas en el MonitorService.
     def get_metrics(self):
@@ -152,19 +157,57 @@ class ControllerASG:
     # En una implementación real, usarías boto3 para lanzar una nueva instancia con la AMI y configuración deseada.
     def create_instance(self):
 
-        print(
-            "[AWS] Placeholder -> "
-            "EC2 instance creation"
-        )
+        try:
+
+            response = self.ec2.run_instances(
+                ImageId=self.config["ami_id"],
+                InstanceType=self.config["instance_type"],
+                KeyName=self.config["key_name"],
+                SecurityGroupIds=[
+                    self.config["security_group_id"]
+                ],
+                SubnetId=self.config["subnet_id"],
+                MinCount=1,
+                MaxCount=1
+            )
+
+            instance_id = (
+                response["Instances"][0]["InstanceId"]
+            )
+
+            print(
+                f"[AWS] Instance created: "
+                f"{instance_id}"
+            )
+
+        except Exception as e:
+
+            print(
+                f"[AWS] Error creating instance: "
+                f"{e}"
+            )
 
     # Método simulado para terminar una instancia EC2.
     # En una implementación real, usarías boto3 para detener la instancia específica.
     def terminate_instance(self, instance_id):
 
-        print(
-            f"[AWS] Placeholder -> "
-            f"Terminate {instance_id}"
-        )
+        try:
+
+            self.ec2.terminate_instances(
+                InstanceIds=[instance_id]
+            )
+
+            print(
+                f"[AWS] Instance terminated: "
+                f"{instance_id}"
+            )
+
+        except Exception as e:
+
+            print(
+                f"[AWS] Error terminating instance: "
+                f"{e}"
+            )
 
     # Método principal del controlador que ejecuta el loop de monitoreo y toma decisiones de escalado basadas en las métricas recolectadas.
     def run(self):
@@ -258,4 +301,4 @@ if __name__ == "__main__":
 
     controller = ControllerASG(config)
 
-    controller.run()
+    controller.create_instance()
