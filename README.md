@@ -105,6 +105,12 @@ You may see warnings such as:
 "Pong" is not a known attribute of module "metrics_pb2"
 ```
 
+## ControllerASG Diagram.
+<img width="906" height="572" alt="image" src="https://github.com/user-attachments/assets/e6520a86-f420-42b6-8e56-0bf160c0038a" />
+<img width="906" height="708" alt="image" src="https://github.com/user-attachments/assets/79190b40-eb70-4470-89bb-7e3373f0cf25" />
+<img width="905" height="696" alt="image" src="https://github.com/user-attachments/assets/ad74b8c2-4e95-4c6d-93cb-8c56cb04cba6" />
+
+
 or similar protobuf-related warnings in VSCode/Pylance.
 
 These are only IDE type-checking warnings caused by dynamically generated protobuf classes. The generated files work correctly at runtime and the application should execute normally.
