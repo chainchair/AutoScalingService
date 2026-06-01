@@ -12,7 +12,7 @@ class ControllerASG:
         self.config = config
         self.ec2 = boto3.client("ec2", region_name="us-east-1")
         
-        # USAR IP FIJA - la que ya funciona
+        # USAR IP FIJA
         monitors_ip = "172.31.36.19"
         print(f"[Controller] Usando MonitorS IP fija: {monitors_ip}")
         
@@ -22,6 +22,11 @@ class ControllerASG:
         self.last_scaling_action = 0
         self.high_load_count = 0
         self.low_load_count = 0
+        
+        # LISTA DE INSTANCIAS PROTEGIDAS (NO BORRAR)
+        self.instancias_protegidas = [
+            "i-0407a7ba04e23d6b7",  # ID de AppInstance principal
+        ]
 
     def get_running_instances_count(self):
         """Obtiene el número REAL de instancias EC2 en ejecución"""
@@ -32,7 +37,6 @@ class ControllerASG:
                 ]
             )
             
-            # Excluir la instancia de MonitorS (la que tiene IP 172.31.36.19)
             count = 0
             for reservation in response['Reservations']:
                 for instance in reservation['Instances']:
@@ -47,8 +51,56 @@ class ControllerASG:
             print(f"[ERROR] Error getting instance count: {e}")
             return 0
 
+    # =============================================
+    # NUEVO MÉTODO: Obtiene SOLO instancias que se pueden borrar
+    # =============================================
+    def get_terminatable_instances(self):
+        """Obtiene instancias que NO están protegidas y se pueden terminar"""
+        try:
+            response = self.ec2.describe_instances(
+                Filters=[
+                    {'Name': 'instance-state-name', 'Values': ['running']}
+                ]
+            )
+            
+            terminatable = []
+            for reservation in response['Reservations']:
+                for instance in reservation['Instances']:
+                    instance_id = instance['InstanceId']
+                    private_ip = instance.get('PrivateIpAddress', '')
+                    
+                    # 1. No terminar MonitorS
+                    if private_ip == "172.31.36.19":
+                        print(f"[PROTECTED] {instance_id} es MonitorS, no se termina")
+                        continue
+                    
+                    # 2. No terminar instancias en la lista protegida
+                    if instance_id in self.instancias_protegidas:
+                        print(f"[PROTECTED] {instance_id} está en lista protegida, no se termina")
+                        continue
+                    
+                    # 3. No terminar si tiene Termination Protection de AWS
+                    if instance.get('DisableApiTermination', False):
+                        print(f"[PROTECTED] {instance_id} tiene termination protection de AWS")
+                        continue
+                    
+                    # 4. No terminar si tiene tag Protected=true
+                    tags = instance.get('Tags', [])
+                    for tag in tags:
+                        if tag.get('Key') == 'Protected' and tag.get('Value') == 'true':
+                            print(f"[PROTECTED] {instance_id} tiene tag Protected=true")
+                            continue
+                    
+                    terminatable.append(instance_id)
+            
+            print(f"[DEBUG] Instancias que se pueden terminar: {terminatable}")
+            return terminatable
+        except Exception as e:
+            print(f"[ERROR] Error getting terminatable instances: {e}")
+            return []
+
     def get_oldest_instances(self, count):
-        """Obtiene las instancias más antiguas para terminar"""
+        """Obtiene las instancias más antiguas para terminar (solo las NO protegidas)"""
         try:
             response = self.ec2.describe_instances(
                 Filters=[
@@ -59,13 +111,21 @@ class ControllerASG:
             instances = []
             for reservation in response['Reservations']:
                 for instance in reservation['Instances']:
+                    instance_id = instance['InstanceId']
                     private_ip = instance.get('PrivateIpAddress', '')
-                    # No terminar la instancia de MonitorS
-                    if private_ip != "172.31.36.19":
-                        instances.append({
-                            'id': instance['InstanceId'],
-                            'launch_time': instance['LaunchTime']
-                        })
+                    
+                    # Verificar si es protegida
+                    if private_ip == "172.31.36.19":
+                        continue
+                    if instance_id in self.instancias_protegidas:
+                        continue
+                    if instance.get('DisableApiTermination', False):
+                        continue
+                    
+                    instances.append({
+                        'id': instance_id,
+                        'launch_time': instance['LaunchTime']
+                    })
             
             instances.sort(key=lambda x: x['launch_time'])
             return [inst['id'] for inst in instances[:count]]
@@ -88,16 +148,6 @@ class ControllerASG:
                     print(f"[POLICY] Creando instancia ({i+1}/{needed})")
                     self.create_instance()
                     time.sleep(15)
-        
-        elif current_count > self.config["max_instances"]:
-            print(f"[POLICY] Escalando DOWN para respetar máximo")
-            excess = current_count - self.config["max_instances"]
-            
-            instances_to_terminate = self.get_oldest_instances(excess)
-            for instance_id in instances_to_terminate:
-                print(f"[POLICY] Terminando instancia: {instance_id}")
-                self.terminate_instance(instance_id)
-                time.sleep(10)
 
     def get_metrics(self):
         try:
@@ -164,11 +214,11 @@ class ControllerASG:
             )
             
             instance_id = response["Instances"][0]["InstanceId"]
-            print(f"[AWS] ✅ Instancia creada: {instance_id}")
+            print(f"[AWS] Instancia creada: {instance_id}")
             return instance_id
             
         except Exception as e:
-            print(f"[AWS] ❌ Error creando instancia: {e}")
+            print(f"[AWS] Error creando instancia: {e}")
             return None
 
     def terminate_instance(self, instance_id):
@@ -192,16 +242,30 @@ class ControllerASG:
         self.last_scaling_action = time.time()
         self.create_instance()
 
+    # =============================================
+    # MÉTODO SCALE_DOWN MODIFICADO - Solo borra instancias NO protegidas
+    # =============================================
     def scale_down(self):
         print("\n==============================")
         print("[Controller] DECISIÓN: ESCALAR DOWN")
         print("==============================\n")
         
+        # Obtener SOLO instancias que se pueden terminar
+        terminatable = self.get_terminatable_instances()
+        
+        if not terminatable:
+            print("[Controller] No hay instancias disponibles para terminar (todas están protegidas)")
+            return
+        
         self.last_scaling_action = time.time()
         
+        # Terminar la instancia más antigua de las NO protegidas
         oldest = self.get_oldest_instances(1)
         if oldest:
+            print(f"[Controller] Terminando instancia no protegida: {oldest[0]}")
             self.terminate_instance(oldest[0])
+        else:
+            print("[Controller] No se encontraron instancias no protegidas para terminar")
 
     def run(self):
         print("[Controller] Iniciando loop principal...")
