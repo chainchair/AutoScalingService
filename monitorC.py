@@ -18,7 +18,10 @@ FLASK_HEALTH_URL = "http://127.0.0.1:5000/health"
 
 # Configuraciones de red (usan variables de entorno, o '127.0.0.1' por defecto para pruebas locales)
 MONITORS_IP = "172.31.36.19"      # IP privada de MonitorS
-MY_IP = "172.31.37.117"           # IP privada de esta AppInstance
+MY_IP = requests.get(
+    "http://169.254.169.254/latest/meta-data/local-ipv4"
+).text
+           # IP privada de esta AppInstance
 INSTANCE_ID = requests.get(
     "http://169.254.169.254/latest/meta-data/instance-id"
 ).text
@@ -58,7 +61,7 @@ class MonitorService(metrics_pb2_grpc.MonitorServiceServicer):
             data = response.json()
 
             return metrics_pb2.InstanceMetrics(# type: ignore
-                instance_id="local_flask_instance",
+                instance_id=INSTANCE_ID,
                 status=data["status"],
                 cpu_percent=data["cpu_percent"],
                 ram_percent=data["ram_percent"],

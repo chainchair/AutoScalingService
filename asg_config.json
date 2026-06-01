@@ -1,5 +1,5 @@
 {
-    "monitor_host": "localhost",
+    "monitor_host": "172.31.36.19",
     "monitor_port": 50051,
 
     "min_instances": 2,

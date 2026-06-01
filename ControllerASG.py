@@ -131,16 +131,23 @@ class ControllerASG:
     # En una implementación real, aquí se usarían llamadas a la API de AWS (boto3) para gestionar las instancias EC2.
     def scale_up(self):
 
-        current_instances = len(
-            self.get_metrics()
+        current_instances = (
+            self.get_running_instances_count()
+        )
+
+        print(
+            f"[Controller] Real EC2 count: "
+            f"{current_instances}"
         )
 
         if current_instances >= self.config["max_instances"]:
+
             print(
                 "[Controller] Maximum instances reached"
             )
+
             return
-    
+
         print("\n==============================")
         print("[Controller] DECISION: SCALE UP")
         print("[Controller] Creating instance")
@@ -228,7 +235,7 @@ class ControllerASG:
 
                 instances = self.get_metrics()
 
-                count = len(instances)
+                count = self.get_running_instances_count()
 
                 # Garantizar mínimo de instancias
                 if count < self.config["min_instances"]:
@@ -311,4 +318,4 @@ if __name__ == "__main__":
 
     controller = ControllerASG(config)
 
-    controller.create_instance()
+    controller.run()
